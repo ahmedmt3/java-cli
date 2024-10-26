@@ -15,7 +15,7 @@ public class CLI {
             System.out.print("> ");
             String input = scanner.nextLine().trim();
             System.out.println(input);
-            if (!commandHandler.excuteCommand(input)){
+            if (!commandHandler.executeCommand(input)){
                 break;
             }
         }
