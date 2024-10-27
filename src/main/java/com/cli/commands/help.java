@@ -1,4 +1,4 @@
-package com.cli.project.commands;
+package com.cli.commands;
 
 
 public class help {
