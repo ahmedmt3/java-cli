@@ -16,13 +16,18 @@ public class CommandHandler {
                 return new help().excute();
             case "pwd":
                 return new pwd().execute();
-
             case "cd":
-                //
                 return new cd().execute(argument);
+            case "mkdir":
+                return new mkdir().execute(argument);
+            case "rmdir":
+                return new rmdir().execute(argument);
+            case "ls":
+                    return new ls().execute(argument);
 
             default:
-                return false;
+                System.out.println("Command not found: " + command);
+                return true;
         }
     }
 }
