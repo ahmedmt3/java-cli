@@ -26,7 +26,7 @@ public class CommandHandler {
             filePath = redirectionParts[1].trim();
         }
 
-        // If piping is present, handle piping
+        // Handle piping if present
         if (parts.length > 1) {
             return handlePiping(parts);
         }
@@ -36,9 +36,10 @@ public class CommandHandler {
     }
 
     private boolean executeSingleCommand(String commandPart, String filePath, boolean isAppend) {
-        String[] commandParts = commandPart.split(" ", 2);
+        String[] commandParts = commandPart.split(" ", 3);
         String command = commandParts[0];
         String argument = commandParts.length > 1 ? commandParts[1] : null;
+        String additionalArgument = commandParts.length > 2 ? commandParts[2] : null;
 
         // Execute based on command type
         switch (command) {
@@ -56,11 +57,18 @@ public class CommandHandler {
                 return new rmdir().execute(argument);
             case "ls":
                 return new ls().execute(argument);
+            case "mv":
+                if (argument != null && additionalArgument != null) {
+                    return new mv().execute(argument, additionalArgument);
+                } else {
+                    System.out.println("mv: missing file operands. Usage: mv <source> <destination>");
+                    return false;
+                }
             case "echo":
                 return handleEcho(commandParts, filePath, isAppend);
             default:
                 System.out.println("Command not found: " + command);
-                return true;
+                return false;
         }
     }
 
@@ -103,7 +111,7 @@ public class CommandHandler {
                     default:
                         System.out.println("Command not found: " + command);
                         System.setOut(originalOut);
-                        return true;
+                        return false;
                 }
 
                 // Restore original output and capture intermediate output
@@ -121,7 +129,7 @@ public class CommandHandler {
                             break;
                         default:
                             System.out.println("Command not found: " + command);
-                            return true;
+                            return false;
                     }
                 }
             }
