@@ -2,7 +2,7 @@ package com.cli.commands;
 
 
 public class help {
-    public boolean excute(){
+    public boolean execute(){
         System.out.println("Command Line Interpreter Help\n");
         System.out.println("Available Commands:");
         System.out.println("1.  exit\t - Terminates the current session.");
