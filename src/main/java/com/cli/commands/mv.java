@@ -1,11 +1,13 @@
 package com.cli.commands;
 
+import com.cli.CLI;
+
 import java.io.File;
 
 public class mv {
 
     public boolean execute(String sourcePath, String destinationPath) {
-        File sourceFile = new File(sourcePath);
+        File sourceFile = new File(CLI.currentDir, sourcePath);
         File destinationFile = new File(destinationPath);
 
         // Check if source file exists

@@ -1,10 +1,12 @@
 package com.cli.commands;
 
+import com.cli.CLI;
+
 import java.io.File;
 
 public class rm {
     public boolean execute(String fileName) {
-        File file = new File(fileName);
+        File file = new File(CLI.currentDir, fileName);
         if (file.exists() && file.delete()) {
             System.out.println("File deleted: " + fileName);
             return true;
