@@ -22,10 +22,9 @@ public class mv {
         // Move the file
         if (sourceFile.renameTo(destinationFile)) {
             System.out.println("File moved/renamed successfully.");
-            return true;
         } else {
             System.out.println("mv: failed to move '" + sourcePath + "' to '" + destinationPath + "'");
-            return true;
         }
+        return true;
     }
 }

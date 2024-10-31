@@ -1,20 +1,22 @@
 package com.cli;
 
 import com.cli.commands.*;
-
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CommandHandler {
 
     public boolean executeCommand(String input) {
-        // Split input for piping
-        String[] parts = input.split("\\|");
+        // Split input for piping but consider quotes
+        String[] parts = splitCommandByPipe(input);
         String commandPart = parts[0].trim();
         String filePath = null;
         boolean isAppend = false;
 
-        // Check for redirection in the first command
         if (commandPart.contains(">>")) {
             String[] redirectionParts = commandPart.split(">>");
             commandPart = redirectionParts[0].trim();
@@ -26,22 +28,32 @@ public class CommandHandler {
             filePath = redirectionParts[1].trim();
         }
 
-        // Handle piping if present
         if (parts.length > 1) {
             return handlePiping(parts);
         }
 
-        // Execute single command
         return executeSingleCommand(commandPart, filePath, isAppend);
     }
 
     private boolean executeSingleCommand(String commandPart, String filePath, boolean isAppend) {
-        String[] commandParts = commandPart.split(" ", 3);
-        String command = commandParts[0];
-        String argument = commandParts.length > 1 ? commandParts[1] : null;
-        String additionalArgument = commandParts.length > 2 ? commandParts[2] : null;
+        // Use regex to match command and arguments correctly, accounting for quotes
+        Pattern pattern = Pattern.compile("(\"[^\"]*\"|\\S+)");
+        Matcher matcher = pattern.matcher(commandPart);
+        List<String> commandParts = new ArrayList<>();
 
-        // Execute based on command type
+        while (matcher.find()) {
+            commandParts.add(matcher.group().replaceAll("^\"|\"$", "")); // Remove surrounding quotes
+        }
+
+        if (commandParts.isEmpty()) {
+            System.out.println("Command not found: " + commandPart);
+            return false;
+        }
+
+        String command = commandParts.get(0);
+        String argument = commandParts.size() > 1 ? commandParts.get(1) : null;
+        String additionalArgument = commandParts.size() > 2 ? commandParts.get(2) : null;
+
         switch (command) {
             case "exit":
                 return new exit().execute();
@@ -66,18 +78,25 @@ public class CommandHandler {
                 }
             case "echo":
                 return handleEcho(commandParts, filePath, isAppend);
+            case "touch":
+                return new touch().execute(argument);
+            case "cat":
+                return new cat().execute(argument);
+            case "rm":
+                return new rm().execute(argument);
             default:
                 System.out.println("Command not found: " + command);
                 return false;
         }
     }
 
-    private boolean handleEcho(String[] commandParts, String filePath, boolean isAppend) {
-        String output = commandParts.length > 1 ? commandParts[1] : "";
+    private boolean handleEcho(List<String> commandParts, String filePath, boolean isAppend) {
+        // Join all arguments after the first one to support multiple words in echo
+        String output = String.join(" ", commandParts.subList(1, commandParts.size()));
         if (filePath != null) {
             return new RedirectOutput().execute(output, filePath, isAppend);
         } else {
-            System.out.println(output); // Print to console if no redirection
+            System.out.println(output);
             return true;
         }
     }
@@ -91,50 +110,56 @@ public class CommandHandler {
             String command = cmdArgs[0];
             String argument = cmdArgs.length > 1 ? cmdArgs[1] : null;
 
-            // Capture output of intermediate commands
-            if (i < commandParts.length - 1) {
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                PrintStream originalOut = System.out;
-                System.setOut(new PrintStream(outputStream));
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            PrintStream originalOut = System.out;
+            System.setOut(new PrintStream(outputStream));
 
-                // Execute intermediate command
-                switch (command) {
-                    case "pwd":
-                        new pwd().execute();
-                        break;
-                    case "ls":
-                        new ls().execute(argument);
-                        break;
-                    case "echo":
-                        System.out.println(argument);
-                        break;
-                    default:
-                        System.out.println("Command not found: " + command);
-                        System.setOut(originalOut);
-                        return false;
-                }
+            // Execute each command in the pipeline
+            switch (command) {
+                case "pwd":
+                    new pwd().execute();
+                    break;
+                case "ls":
+                    new ls().execute(argument);
+                    break;
+                case "echo":
+                    System.out.println(argument);
+                    break;
+                case "cat":
+                    new cat().execute(argument != null ? argument : output);
+                    break;
+                case "rm":
+                    new rm().execute(argument);
+                    break;
+                case "touch":
+                    new touch().execute(argument);
+                    break;
+                default:
+                    System.out.println("Command not found: " + command);
+                    System.setOut(originalOut);
+                    return false;
+            }
 
-                // Restore original output and capture intermediate output
-                System.setOut(originalOut);
-                output = outputStream.toString().trim(); // Store output for next command
-            } else {
-                // Last command in the pipe sequence
-                if (output != null && command.equals("echo")) {
-                    System.out.println(output);
-                } else {
-                    // Handle the last command normally
-                    switch (command) {
-                        case "echo":
-                            System.out.println(argument);
-                            break;
-                        default:
-                            System.out.println("Command not found: " + command);
-                            return false;
-                    }
-                }
+            System.setOut(originalOut);
+            output = outputStream.toString().trim();
+
+            // Set up the next command to receive this output
+            if (i < commandParts.length - 1 && command.equals("echo")) {
+                System.out.println(output);
             }
         }
 
-        return true; // Continue running the CLI
+        return true;
+    }
+
+    public String[] splitCommandByPipe(String input) {
+        List<String> parts = new ArrayList<>();
+        Matcher m = Pattern.compile("(\"[^\"]*\"|[^|]+)").matcher(input);
+
+        while (m.find()) {
+            parts.add(m.group().replaceAll("^\"|\"$", "")); // Remove surrounding quotes
+        }
+
+        return parts.toArray(new String[0]);
     }
 }

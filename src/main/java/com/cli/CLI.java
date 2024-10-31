@@ -19,9 +19,14 @@ public class CLI {
         while(true){
             System.out.print("> ");
             String input = scanner.nextLine().trim();
-            if (!commandHandler.executeCommand(input)){
-                break;
+            if (input.trim().isEmpty()){
+                System.out.println("enter a valid command");
+            }else {
+                if (!commandHandler.executeCommand(input)){
+                    break;
+                }
             }
+
         }
     }
 }
